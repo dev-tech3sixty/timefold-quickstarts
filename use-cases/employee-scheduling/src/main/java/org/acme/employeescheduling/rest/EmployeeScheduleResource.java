@@ -1,13 +1,19 @@
 package org.acme.employeescheduling.rest;
 
 import java.time.LocalDate;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import ai.timefold.solver.core.api.solver.SolutionManager;
 import ai.timefold.solver.core.api.solver.SolverManager;
@@ -21,13 +27,20 @@ import org.acme.employeescheduling.persistence.AvailabilityRepository;
 import org.acme.employeescheduling.persistence.EmployeeRepository;
 import org.acme.employeescheduling.persistence.ScheduleStateRepository;
 import org.acme.employeescheduling.persistence.ShiftRepository;
+import org.acme.employeescheduling.rest.exception.ScheduleSolverException;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.quarkus.panache.common.Sort;
 
 @Path("/schedule")
 public class EmployeeScheduleResource {
+    private static final Logger LOGGER = LoggerFactory.getLogger(EmployeeScheduleResource.class);
 
     public static final Long SINGLETON_SCHEDULE_ID = 1L;
+    private final ConcurrentMap<Long, Job> jobIdToJob = new ConcurrentHashMap<>();
 
     @Inject
     AvailabilityRepository availabilityRepository;
@@ -46,6 +59,19 @@ public class EmployeeScheduleResource {
     @Inject
     SolutionManager<EmployeeSchedule, HardSoftScore> solutionManager;
 
+    // Workaround to make Quarkus CDI happy. Do not use.
+    public EmployeeScheduleResource() {
+        this.solverManager = null;
+        this.solutionManager = null;
+    }
+
+    @Inject
+    public EmployeeScheduleResource(SolverManager<EmployeeSchedule, Long> solverManager,
+            SolutionManager<EmployeeSchedule, HardSoftScore> solutionManager) {
+        this.solverManager = solverManager;
+        this.solutionManager = solutionManager;
+    }
+
     // To try, open http://localhost:8080/schedule
     @GET
     public EmployeeSchedule getSchedule() {
@@ -60,6 +86,10 @@ public class EmployeeScheduleResource {
 
     public SolverStatus getSolverStatus() {
         return solverManager.getSolverStatus(SINGLETON_SCHEDULE_ID);
+    }
+
+    public SolverStatus getSolverStatus(Long jodId) {
+        return solverManager.getSolverStatus(jodId);
     }
 
     @POST
@@ -110,9 +140,77 @@ public class EmployeeScheduleResource {
     @Transactional
     protected void save(EmployeeSchedule schedule) {
         for (Shift shift : schedule.getShifts()) {
-            // TODO this is awfully naive: optimistic locking causes issues if called by the SolverManager
+            // TODO this is awfully naive: optimistic locking causes issues if called by the
+            // SolverManager
             Shift attachedShift = shiftRepository.findById(shift.getId());
             attachedShift.setEmployee(shift.getEmployee());
         }
     }
+
+    //////////////////
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces(MediaType.TEXT_PLAIN)
+    public Long solve(EmployeeSchedule problem) {
+        // String jobId = UUID.randomUUID().toString();
+        Long jobId = 5L;
+        jobIdToJob.put(jobId, Job.ofSchedule(problem));
+        solverManager.solveBuilder()
+                .withProblemId(jobId)
+                .withProblemFinder(jobId_ -> jobIdToJob.get(jobId).schedule)
+                .withBestSolutionConsumer(solution -> jobIdToJob.put(jobId, Job.ofSchedule(solution)))
+                .withExceptionHandler((jobId_, exception) -> {
+                    jobIdToJob.put(jobId, Job.ofException(exception));
+                    LOGGER.error("Failed solving jobId ({}).", jobId, exception);
+                })
+                .run();
+        return jobId;
+    }
+
+    private record Job(EmployeeSchedule schedule, Throwable exception) {
+
+        static Job ofSchedule(EmployeeSchedule schedule) {
+            return new Job(schedule, null);
+        }
+
+        static Job ofException(Throwable error) {
+            return new Job(null, error);
+        }
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{jobId}")
+    public EmployeeSchedule getSchedule(
+            @Parameter(description = "The job ID returned by the POST method.") @PathParam("jobId") Long jobId) {
+        EmployeeSchedule schedule = getScheduleAndCheckForExceptions(jobId);
+        SolverStatus solverStatus = solverManager.getSolverStatus(jobId);
+        schedule.setSolverStatus(solverStatus);
+        return schedule;
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{jobId}/status")
+    public SolverStatus getStatus(
+            @Parameter(description = "The job ID returned by the POST method.") @PathParam("jobId") Long jobId) {
+        EmployeeSchedule schedule = getScheduleAndCheckForExceptions(jobId);
+        SolverStatus solverStatus = solverManager.getSolverStatus(jobId);
+        schedule.setSolverStatus(solverStatus);
+        return schedule.getSolverStatus();
+    }
+
+    private EmployeeSchedule getScheduleAndCheckForExceptions(Long jobId) {
+        Job job = jobIdToJob.get(jobId);
+        if (job == null) {
+            throw new ScheduleSolverException(jobId, Response.Status.NOT_FOUND, "No data found.");
+        }
+        if (job.exception != null) {
+            throw new ScheduleSolverException(jobId, job.exception);
+        }
+        return job.schedule;
+    }
+
+    /////////////////
 }

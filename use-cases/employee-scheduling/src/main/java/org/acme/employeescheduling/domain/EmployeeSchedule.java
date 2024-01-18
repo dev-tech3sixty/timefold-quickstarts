@@ -30,9 +30,11 @@ public class EmployeeSchedule {
     SolverStatus solverStatus;
 
     // No-arg constructor required for Timefold
-    public EmployeeSchedule() {}
+    public EmployeeSchedule() {
+    }
 
-    public EmployeeSchedule(ScheduleState scheduleState, List<Availability> availabilities, List<Employee> employees, List<Shift> shifts) {
+    public EmployeeSchedule(ScheduleState scheduleState, List<Availability> availabilities, List<Employee> employees,
+            List<Shift> shifts) {
         this.scheduleState = scheduleState;
         this.availabilities = availabilities;
         this.employees = employees;
