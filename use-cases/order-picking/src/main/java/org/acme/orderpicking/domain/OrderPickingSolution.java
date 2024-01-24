@@ -7,7 +7,9 @@ import ai.timefold.solver.core.api.domain.solution.PlanningScore;
 import ai.timefold.solver.core.api.domain.solution.PlanningSolution;
 import ai.timefold.solver.core.api.domain.solution.ProblemFactCollectionProperty;
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider;
+import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import ai.timefold.solver.core.api.score.buildin.hardsoftlong.HardSoftLongScore;
+import ai.timefold.solver.core.api.solver.SolverStatus;
 
 @PlanningSolution
 public class OrderPickingSolution {
@@ -15,7 +17,8 @@ public class OrderPickingSolution {
     /**
      * Defines the available Trolleys.
      * 
-     * @see TrolleyStep for more information about the model constructed by the Solver.
+     * @see TrolleyStep for more information about the model constructed by the
+     *      Solver.
      */
     @ValueRangeProvider
     @ProblemFactCollectionProperty
@@ -24,7 +27,8 @@ public class OrderPickingSolution {
     /**
      * Defines the available TrolleySteps.
      * 
-     * @see TrolleyStep for more information about the model constructed by the Solver.
+     * @see TrolleyStep for more information about the model constructed by the
+     *      Solver.
      */
     @ValueRangeProvider
     @PlanningEntityCollectionProperty
@@ -33,8 +37,15 @@ public class OrderPickingSolution {
     @PlanningScore
     private HardSoftLongScore score;
 
+    SolverStatus solverStatus;
+
     public OrderPickingSolution() {
         // Marshalling constructor
+    }
+
+    public OrderPickingSolution(HardSoftLongScore score, SolverStatus solverStatus) {
+        this.score = score;
+        this.solverStatus = solverStatus;
     }
 
     public OrderPickingSolution(List<Trolley> trolleys, List<TrolleyStep> trolleySteps) {
@@ -64,5 +75,13 @@ public class OrderPickingSolution {
 
     public void setScore(HardSoftLongScore score) {
         this.score = score;
+    }
+
+    public SolverStatus getSolverStatus() {
+        return solverStatus;
+    }
+
+    public void setSolverStatus(SolverStatus solverStatus) {
+        this.solverStatus = solverStatus;
     }
 }
