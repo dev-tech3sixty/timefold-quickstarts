@@ -30,11 +30,27 @@ public class PackagingSchedule {
     @PlanningScore
     private HardMediumSoftLongScore score;
 
-    // Ignored by OptaPlanner, used by the UI to display solve or stop solving button
+    // Ignored by OptaPlanner, used by the UI to display solve or stop solving
+    // button
     private SolverStatus solverStatus;
 
     // No-arg constructor required for OptaPlanner
     public PackagingSchedule() {
+    }
+
+    public PackagingSchedule(HardMediumSoftLongScore score, SolverStatus solverStatus) {
+        this.score = score;
+        this.solverStatus = solverStatus;
+    }
+
+    public PackagingSchedule(WorkCalendar workCalendar, List<Product> products, List<Line> lines, List<Job> jobs) {
+        System.out.println("******************");
+        System.out.println(lines.size());
+        System.out.println("******************");
+        this.workCalendar = workCalendar;
+        this.products = products;
+        this.lines = lines;
+        this.jobs = jobs;
     }
 
     // ************************************************************************
