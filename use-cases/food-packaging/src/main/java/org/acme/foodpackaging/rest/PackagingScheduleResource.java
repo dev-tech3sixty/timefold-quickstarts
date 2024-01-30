@@ -67,18 +67,11 @@ public class PackagingScheduleResource {
         solverManager.terminateEarly(SINGLETON_SOLUTION_ID);
     }
 
-    ////
-    ///
     @POST
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces(MediaType.TEXT_PLAIN)
     public Long solve(PackagingSchedule problem) {
-        System.out.println("Testing");
-        // String jobId = UUID.randomUUID().toString();
-        Long jobId = 3L;
-        System.out.println("******************");
-        System.out.println(problem.getProducts().size());
-        System.out.println("******************");
+        Long jobId = 5L;
         jobIdToJob.put(jobId, JobSchedule.ofSchedule(problem));
         solverManager.solveBuilder()
                 .withProblemId(jobId)

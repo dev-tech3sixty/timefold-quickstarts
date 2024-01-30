@@ -19,6 +19,12 @@ public class Product {
         this.name = name;
     }
 
+    public Product(Long id, String name, Map<Product, Duration> cleaningDurations) {
+        this.id = id;
+        this.name = name;
+        this.cleaningDurations = cleaningDurations;
+    }
+
     @Override
     public String toString() {
         return name;

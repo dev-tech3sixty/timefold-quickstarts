@@ -44,9 +44,6 @@ public class PackagingSchedule {
     }
 
     public PackagingSchedule(WorkCalendar workCalendar, List<Product> products, List<Line> lines, List<Job> jobs) {
-        System.out.println("******************");
-        System.out.println(lines.size());
-        System.out.println("******************");
         this.workCalendar = workCalendar;
         this.products = products;
         this.lines = lines;

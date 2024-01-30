@@ -1,6 +1,7 @@
 package org.acme.employeescheduling.rest;
 
 import java.time.LocalDate;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -154,7 +155,8 @@ public class EmployeeScheduleResource {
     @Produces(MediaType.TEXT_PLAIN)
     public Long solve(EmployeeSchedule problem) {
         // String jobId = UUID.randomUUID().toString();
-        Long jobId = 5L;
+        UUID uuid = UUID.randomUUID();
+        Long jobId = uuid.getMostSignificantBits() & Long.MAX_VALUE;
         jobIdToJob.put(jobId, Job.ofSchedule(problem));
         solverManager.solveBuilder()
                 .withProblemId(jobId)

@@ -12,6 +12,7 @@ public class FacilityLocationProblemRepository {
     private FacilityLocationProblem facilityLocationProblem;
 
     public Optional<FacilityLocationProblem> solution() {
+
         return Optional.ofNullable(facilityLocationProblem);
     }
 
