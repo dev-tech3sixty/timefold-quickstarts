@@ -1,6 +1,7 @@
 package org.acme.employeescheduling.rest;
 
 import java.time.LocalDate;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -34,6 +35,7 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.netty.util.internal.ThreadLocalRandom;
 import io.quarkus.panache.common.Sort;
 
 @Path("/schedule")
@@ -155,8 +157,10 @@ public class EmployeeScheduleResource {
     @Produces(MediaType.TEXT_PLAIN)
     public Long solve(EmployeeSchedule problem) {
         // String jobId = UUID.randomUUID().toString();
-        UUID uuid = UUID.randomUUID();
-        Long jobId = uuid.getMostSignificantBits() & Long.MAX_VALUE;
+        // Long jobId = uuid.getMostSignificantBits() & Long.MIN_VALUE;
+        Random ran = new Random();
+        int x = ran.nextInt(100000) + 5;
+        Long jobId = Long.valueOf(x);
         jobIdToJob.put(jobId, Job.ofSchedule(problem));
         solverManager.solveBuilder()
                 .withProblemId(jobId)
